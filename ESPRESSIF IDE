@@ -1,0 +1,51 @@
+#include<stdio.h>
+#include<string.h>
+#include<unistd.h>
+#include"freertos/FreeRTOS.h"
+#include"freertos/task.h"
+#include"driver/gpio.h"
+#include"esp_log.h"
+#include"driver/i2c.h"
+// Relay GPIO pins
+#define PUMP1_RELAY1_PIN GPIO_NUM_19 //Relay for pump 1
+#define PUMP2_RELAY2_PIN GPIO_NUM_18 // Relay for pump 2
+#define LED1_RELAY3_PIN GPIO_NUM_5 // Relay for LED 1
+#define LED2_RELAY4_PIN GPIO_NUM_17 //Relay for LED 2
+
+// Timing variables
+unsigned long pump1RunTime=0;
+unsigned long pump2RunTime=0;
+const long interval=25000; // 25 seconds for each pair 
+// Task for controlling the pumps and LEDs
+void control_task(void*arg){
+while(1){
+//Turn on Pump2 and LED 2, turn off Pump 1 and LED 1
+gpio_set_level(PUMP1_RELAY1_PIN,1);
+gpio_set_level(LED1_RELAY3_PIN,1);
+pump1RunTime+=interval/1000; //Increment run time
+vTaskDelay(pdMS_TO_TICKS(interval));
+
+//Turn off Pump2 and LED 2,turn on Pump1 and LED 1 
+gpio_set_level(PUMP1_RELAY1_PIN,0);
+gpio_set_level(LED1_RELAY3_PIN,0);
+gpio_set_level(PUMP2_RELAY2_PIN,1);
+gpio_set_level(LED2_RELAY4_PIN,1);
+pump2RunTime+= interval/1000; // increment run time 
+vTaskDelay(pdMS_TO_TICKS(interval));
+
+// Turn off Pump 1 and LED 1
+gpio_set_level(PUMP2_RELAY2_PIN,0);
+gpio_set_level(LED2_RELAY4_PIN,0);
+}
+}
+
+void app_main(void){
+// Intialize GPIO
+gpio_set_direction(PUMP1_RELAY1_PIN,GPIO_MODE_OUTPUT);
+gpio_set_direction(PUMP2_RELAY2_PIN,GPIO_MODE_OUTPUT);
+gpio_set_direction(LED1_RELAY3_PIN,GPIO_MODE_OUTPUT);
+gpio_set_direction(LED2_RELAY4_PIN,GPIO_MODE_OUTPUT);
+
+//Create tasks
+xTaskCreate(contrl_task,"Control Task",2048,NULL,5,NULL);
+}
